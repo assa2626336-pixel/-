@@ -1,0 +1,19 @@
+# Render.com 部署設定
+# 使用方式見 README「部署到公開網址（Render）」章節。
+# 在 Render 建立服務時若選擇「From render.yaml」，會自動套用以下設定；
+# TDX_CLIENT_ID / TDX_CLIENT_SECRET 請在 Render 後台的 Environment 頁籤手動填入（不要寫進這個檔案）。
+
+services:
+  - type: web
+    name: taipei-mrt-tracker
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: TDX_CLIENT_ID
+        sync: false
+      - key: TDX_CLIENT_SECRET
+        sync: false
+      - key: PORT
+        value: 3000

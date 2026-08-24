@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>API 說明 — 台北捷運即時列車位置</title>
+<link rel="stylesheet" href="css/style.css" />
+<style>
+  .doc-wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 80px; }
+  .doc-wrap h2 { font-size: 20px; margin: 32px 0 8px; color: var(--accent); }
+  .doc-wrap p { line-height: 1.7; color: var(--text); }
+  .endpoint {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 14px 0;
+    box-shadow: var(--shadow);
+  }
+  .endpoint .method {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-right: 8px;
+  }
+  .endpoint code.path { font-size: 14px; font-weight: 700; }
+  .endpoint .desc { margin: 8px 0 0; font-size: 13px; color: var(--text-dim); }
+  pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    font-size: 12px;
+  }
+  a.back { font-size: 13px; color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">M</span>
+      <div class="brand-text">
+        <h1 data-i18n="apiLink">API 說明</h1>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button id="langToggle" class="icon-btn" aria-label="切換語言">中</button>
+      <button id="themeToggle" class="icon-btn" aria-label="切換深色模式">🌙</button>
+    </div>
+  </header>
+
+  <main class="doc-wrap">
+    <p><a class="back" href="index.html">← 回地圖首頁</a></p>
+    <p>
+      本網站的前端不會直接呼叫 TDX，而是透過後端（<code>server/index.js</code>）代理，
+      統一處理 OAuth 授權與金鑰保護。以下是後端提供的公開端點，開發者可直接沿用，
+      或作為串接自己應用程式的參考。所有回應皆為 JSON，資料結構對應 TDX
+      「運輸資料流通服務平臺」Rail/Metro 系列 API。
+    </p>
+
+    <h2>基礎網址</h2>
+    <pre>{你的網站網址}/api</pre>
+
+    <div class="endpoint">
+      <p><span class="method">GET</span><code class="path">/api/status</code></p>
+      <p class="desc">回報伺服器是否已設定 TDX 金鑰（configured: true/false），前端據此決定顯示即時資料或示範資料。</p>
+      <pre>{ "configured": true }</pre>
+    </div>
+
+    <div class="endpoint">
+      <p><span class="method">GET</span><code class="path">/api/stations</code></p>
+      <p class="desc">台北捷運車站基本資料，含站名、所屬路線、經緯度（TDX Metro/Station/TRTC）。</p>
+    </div>
+
+    <div class="endpoint">
+      <p><span class="method">GET</span><code class="path">/api/lines</code></p>
+      <p class="desc">路線基本資料，含路線名稱與代表色（TDX Metro/Line/TRTC）。</p>
+    </div>
+
+    <div class="endpoint">
+      <p><span class="method">GET</span><code class="path">/api/shapes</code></p>
+      <p class="desc">路線線型幾何座標，用於在地圖上繪出貼近真實軌道的路網（TDX Metro/Shape/TRTC）。</p>
+    </div>
+
+    <div class="endpoint">
+      <p><span class="method">GET</span><code class="path">/api/liveboard</code></p>
+      <p class="desc">
+        各站即時到站看板，含目的地與到站預估秒數（TDX Metro/LiveBoard/TRTC）。
+        本網站前端會用這份資料內插推算列車在地圖上的近似位置——這不是車輛的
+        實際 GPS 座標，因為北捷目前未對外公開精確列車定位。
+      </p>
+    </div>
+
+    <h2>使用範例</h2>
+    <pre>curl {你的網站網址}/api/liveboard</pre>
+
+    <h2>資料來源與授權</h2>
+    <p>
+      原始資料由
+      <a href="https://tdx.transportdata.tw/" target="_blank" rel="noopener">TDX 運輸資料流通服務平臺</a>
+      提供，使用前請詳閱其資料授權條款。本網站僅作資料視覺化展示，不對資料的即時性、
+      準確性做保證。
+    </p>
+  </main>
+
+  <script src="js/i18n.js"></script>
+  <script>
+    if (localStorage.getItem('mrt-theme') === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('mrt-theme', 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('mrt-theme', 'dark');
+      }
+    });
+  </script>
+</body>
+</html>
