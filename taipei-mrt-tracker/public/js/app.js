@@ -97,19 +97,28 @@ function initMap() {
 }
 
 // ---------- 資料載入 ----------
+
+// TDX 台北捷運的 StationID 本身就是「路線代碼 + 序號」（例如 BL01、R28、G03A），
+// 車站基本資料 API 並不會另外附上 LineID / StationSequence 欄位，
+// 所以路線歸屬與站序改用 StationID 直接解析，不依賴額外欄位。
+const LINE_META = {
+  R: { name: '淡水信義線', color: '#e3002c' },
+  BL: { name: '板南線', color: '#0070bd' },
+  G: { name: '松山新店線', color: '#008659' },
+  O: { name: '中和新蘆線', color: '#f8b61c' },
+  BR: { name: '文湖線', color: '#c48c31' },
+  Y: { name: '環狀線', color: '#fdd035' },
+};
+
 async function loadStaticData() {
   try {
     const status = await fetchJSON('/api/status');
     if (status && status.configured) {
-      const [stationsRaw, linesRaw] = await Promise.all([
-        fetchJSON('/api/stations'),
-        fetchJSON('/api/lines'),
-      ]);
+      const stationsRaw = await fetchJSON('/api/stations');
       const stations = normalizeStations(stationsRaw);
-      const lines = normalizeLines(linesRaw);
-      if (stations.length && lines.length) {
+      if (stations.length) {
         state.stations = stations;
-        state.lines = lines;
+        state.lines = buildLinesFromStations(stations);
         state.usingLiveData = true;
       }
     }
@@ -132,33 +141,35 @@ function renderDataModeLabel() {
   el.dataModeLabel.textContent = state.usingLiveData ? t('dataModeLive') : t('dataModeDemo');
 }
 
-// TDX 原始格式轉換（欄位名稱依 TDX Rail/Metro API 文件）
+function buildLinesFromStations(stations) {
+  const ids = [...new Set(stations.map((s) => s.lineId))];
+  return ids.map((id) => {
+    const meta = LINE_META[id] || { name: id, color: '#666666' };
+    return { id, name: meta.name, color: meta.color };
+  });
+}
+
+// TDX 原始格式轉換：StationID 例如 "BL01"、"R28"、"G03A" → 路線代碼 + 序號
 function normalizeStations(raw) {
   if (!Array.isArray(raw)) return [];
   const out = [];
   raw.forEach((s) => {
     const pos = s.StationPosition || {};
-    (s.LineID ? [s.LineID] : []).forEach((lineId) => {
-      out.push({
-        id: s.StationID,
-        name: (s.StationName && s.StationName.Zh_tw) || s.StationID,
-        lineId,
-        seq: s.StationSequence || 0,
-        lat: pos.PositionLat,
-        lng: pos.PositionLon,
-      });
+    if (!pos.PositionLat || !pos.PositionLon) return;
+    const match = String(s.StationID || '').match(/^([A-Za-z]+)(\d+)([A-Za-z]*)$/);
+    if (!match) return;
+    const lineId = match[1];
+    const seq = parseInt(match[2], 10) + (match[3] ? 0.5 : 0);
+    out.push({
+      id: s.StationID,
+      name: (s.StationName && s.StationName.Zh_tw) || s.StationID,
+      lineId,
+      seq,
+      lat: pos.PositionLat,
+      lng: pos.PositionLon,
     });
   });
   return out.filter((s) => s.lat && s.lng);
-}
-
-function normalizeLines(raw) {
-  if (!Array.isArray(raw)) return [];
-  return raw.map((l) => ({
-    id: l.LineID,
-    name: (l.LineName && l.LineName.Zh_tw) || l.LineID,
-    color: l.LineColor ? `#${l.LineColor}` : '#666666',
-  }));
 }
 
 // ---------- 路線 / 車站 繪製 ----------
